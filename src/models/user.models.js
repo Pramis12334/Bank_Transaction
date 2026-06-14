@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
-const userSchema = mongoose.Schema({
+const userSchema = new mongoose.Schema({
     email: {
         type: String,
         required: [true, "Email is required for creating a account"],
@@ -21,6 +22,21 @@ const userSchema = mongoose.Schema({
         minlength: [6, "Password must be longer than 6 character"],
         select: false
     }
+}, {
+    timestamps: true
 });
 
-module.exports = mongoose.model("user",userSchema);
+userSchema.pre("save", async function(){
+if(!this.isModified("password")) {
+    return
+}
+const hash = await bcrypt.hash(this.password, 10);
+this.password = hash
+return
+});
+
+userSchema.methods.comparePassword = async function(password) {
+    return await bcrypt.compare(password,this.password);
+}
+
+module.exports = mongoose.model("User",userSchema);
