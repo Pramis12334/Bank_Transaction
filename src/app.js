@@ -14,5 +14,9 @@ app.use('/api/auth',authRouter);
 app.use('/api/account', accountRouter);
 app.use('/api/transaction',transactionRoutes);
 
+app.get('/',(req, res) => {
+     res.send("The server is running");
+});
+
 
 module.exports = app;
