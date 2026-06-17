@@ -1,5 +1,6 @@
 const userModel = require('../models/user.models');
 const jwt = require('jsonwebtoken');
+const tokenBlacklist = require('../models/tokenBlacklist.model');
 
 async function authUser(req, res, next) {
     const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
@@ -8,6 +9,16 @@ async function authUser(req, res, next) {
         res.status(401).json({ 
             message: "Unauthorized access, token is missing"
         })
+    }
+
+    const isBlacklist = await tokenBlacklist.findOne({
+        token: token
+    });
+
+    if(isBlacklist) {
+        return res.status(400).json({
+            message: "Unauthorized access, token is invalid"
+        });
     }
 
     try {
@@ -31,6 +42,15 @@ async function systemUser(req, res, next) {
     if(!token) {
         return res.status(400).json({
             message: "Unauthorized access"
+        });
+    }
+
+    const isBlacklist = await tokenBlacklist.findOne({
+        token: token
+    });
+    if(isBlacklist) {
+        return res.status(400).json({
+            message: "Unauthorized access, token is invalid"
         });
     }
     try{

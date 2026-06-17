@@ -1,6 +1,7 @@
 const userModel = require('../models/user.models');
 const jwt = require('jsonwebtoken');
 const emailService = require('../services/email.services');
+const tokenBlacklistModel = require('../models/tokenBlacklist.model');
 
 const userRegister = async function(req, res) {
     try {
@@ -72,7 +73,12 @@ const userLogin = async function(req, res) {
     }, token});
 }
 const userLogout = async function(req, res) {
-    res.clearCookie("token");
+    const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+
+    await tokenBlacklistModel.create({
+        token: token
+    });
+    res.cookie("token", "");
 }
 
 module.exports = { 

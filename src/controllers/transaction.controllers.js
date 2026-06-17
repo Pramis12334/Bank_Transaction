@@ -64,15 +64,17 @@ async function createTransaction(req, res){
         });
     }
 
+    let transaction;
 
-    /*
+    try{ 
+        /*
     **session is used to verify if all the conditon is fulfilled or not while creating transaction and ledger and if not then that transaction will be saved in database.
     */
 
     const session = await mongoose.startSession();
     session.startTransaction();
 
-    const transaction = (await transactionModel.create([{
+     transaction = (await transactionModel.create([{
         fromAccount,
         toAccount,
         Amount,
@@ -106,6 +108,13 @@ async function createTransaction(req, res){
 
     await session.commitTransaction();
     session.endSession();
+
+    }catch(error) {
+        res.status(400).json({
+            message: "Transaction couldnt processed due to some reason."
+        })
+    }
+    
     
 
     await emailService.sendTransactionEmail(req.user.email,req.user.username,Amount,toAccount);
