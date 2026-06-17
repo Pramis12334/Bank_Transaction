@@ -64,6 +64,7 @@ async function createTransaction(req, res){
         });
     }
 
+
     /*
     **session is used to verify if all the conditon is fulfilled or not while creating transaction and ledger and if not then that transaction will be saved in database.
     */
@@ -71,13 +72,13 @@ async function createTransaction(req, res){
     const session = await mongoose.startSession();
     session.startTransaction();
 
-    const transaction = new transactionModel({
+    const transaction = (await transactionModel.create([{
         fromAccount,
         toAccount,
         Amount,
         idempotencyKey,
         status: "Pending"
-    });
+    }],{ session }))[0];
 
     const debitLedgerEntry = await ledgerModel.create([{
         account: fromAccount,
@@ -86,6 +87,10 @@ async function createTransaction(req, res){
         type: "DEBIT"
     }], { session });
 
+    await (() => {
+        return new Promise((resolve) => setTimeout(resolve, 5*1000));
+    });
+
     const creditLedgerEntry = await ledgerModel.create([{
         account: toAccount,
         amount: Amount,
@@ -93,11 +98,15 @@ async function createTransaction(req, res){
         type: "CREDIT"
     }], { session });
 
-    transaction.status = "Completed";
-    await transaction.save({ session });
+    await transactionModel.findOneAndUpdate(
+        {_id: transaction._id},
+        {status: "Completed"},
+        { session }
+    );
 
     await session.commitTransaction();
     session.endSession();
+    
 
     await emailService.sendTransactionEmail(req.user.email,req.user.username,Amount,toAccount);
 
@@ -143,13 +152,13 @@ async function initialTransactionFunds(req, res) {
     const session = await mongoose.startSession();
     session.startTransaction();
 
-    const transaction = new transactionModel({
+    const transaction = (await transactionModel.create([{
         fromAccount: isfromAccount._id,
         toAccount: istoAccountExist._id,
         Amount: amount,
         idempotencyKey: idempotencyKey,
         status: "Pending"
-    });
+    }], { session }))[0];
 
     const debitLedgerEntry = await ledgerModel.create([{
         account: isfromAccount._id,
@@ -158,6 +167,10 @@ async function initialTransactionFunds(req, res) {
         type: "DEBIT"
     }], { session });
 
+    await (() => {
+        return new Promise((resolve) => setTimeout(resolve, 5*1000));
+    })
+
     const creditLedgerEntry = await ledgerModel.create([{
         account: toAccount,
         amount: amount,
@@ -165,8 +178,12 @@ async function initialTransactionFunds(req, res) {
         type: "CREDIT"
     }], { session });
 
-    transaction.status = "Completed";
-    await transaction.save({ session });
+    
+    await transactionModel.findOneAndUpdate([
+        {_id: transaction._id},
+        {status: "Completed"}],
+        {session}
+    );
 
     await session.commitTransaction();
     session.endSession();
